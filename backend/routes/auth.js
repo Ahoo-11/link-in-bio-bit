@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const User = require('../models/User');
+const supabase = require('../db');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
@@ -17,7 +17,12 @@ router.post('/signup', async (req, res) => {
     }
 
     // Check if user exists
-    const existingUser = await User.findOne({ $or: [{ username }, { email }] });
+    const { data: existingUser } = await supabase
+      .from('linkinbio_users')
+      .select('*')
+      .or(`username.eq.${username.toLowerCase()},email.eq.${email.toLowerCase()}`)
+      .single();
+
     if (existingUser) {
       return res.status(400).json({ message: 'Username or email already exists' });
     }
@@ -29,39 +34,43 @@ router.post('/signup', async (req, res) => {
     }
 
     // Create user
-    const user = new User({
-      username: username.toLowerCase(),
-      email: email.toLowerCase(),
-      password: hashedPassword,
-      displayName,
-      walletAddress: walletAddress || '',
-      buttons: [
-        {
-          id: '1',
-          type: 'tip',
-          title: 'Support me - $5',
-          amount: 5,
-          style: { bgColor: '#8b5cf6', textColor: '#ffffff' },
-          visible: true,
-          order: 0,
-        }
-      ],
-    });
+    const { data: user, error } = await supabase
+      .from('linkinbio_users')
+      .insert({
+        username: username.toLowerCase(),
+        email: email.toLowerCase(),
+        password: hashedPassword,
+        display_name: displayName,
+        wallet_address: walletAddress || '',
+        buttons: [
+          {
+            id: '1',
+            type: 'tip',
+            title: 'Support me - $5',
+            amount: 5,
+            style: { bgColor: '#8b5cf6', textColor: '#ffffff' },
+            visible: true,
+            order: 0,
+          }
+        ],
+      })
+      .select()
+      .single();
 
-    await user.save();
+    if (error) throw error;
 
     // Generate token
-    const token = jwt.sign({ userId: user._id, username: user.username }, JWT_SECRET, {
+    const token = jwt.sign({ userId: user.id, username: user.username }, JWT_SECRET, {
       expiresIn: '30d',
     });
 
     res.status(201).json({
       token,
       user: {
-        id: user._id,
+        id: user.id,
         username: user.username,
         email: user.email,
-        displayName: user.displayName,
+        displayName: user.display_name,
       },
     });
   } catch (error) {
@@ -76,8 +85,13 @@ router.post('/login', async (req, res) => {
     const { email, password } = req.body;
 
     // Find user
-    const user = await User.findOne({ email: email.toLowerCase() });
-    if (!user) {
+    const { data: user, error } = await supabase
+      .from('linkinbio_users')
+      .select('*')
+      .eq('email', email.toLowerCase())
+      .single();
+
+    if (error || !user) {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
@@ -92,17 +106,17 @@ router.post('/login', async (req, res) => {
     }
 
     // Generate token
-    const token = jwt.sign({ userId: user._id, username: user.username }, JWT_SECRET, {
+    const token = jwt.sign({ userId: user.id, username: user.username }, JWT_SECRET, {
       expiresIn: '30d',
     });
 
     res.json({
       token,
       user: {
-        id: user._id,
+        id: user.id,
         username: user.username,
         email: user.email,
-        displayName: user.displayName,
+        displayName: user.display_name,
       },
     });
   } catch (error) {
@@ -121,33 +135,43 @@ router.post('/wallet-login', async (req, res) => {
     }
 
     // Find or create user
-    let user = await User.findOne({ walletAddress });
+    let { data: user } = await supabase
+      .from('linkinbio_users')
+      .select('*')
+      .eq('wallet_address', walletAddress)
+      .single();
 
     if (!user && username && displayName) {
       // Create new user
-      user = new User({
-        username: username.toLowerCase(),
-        email: `${username}@wallet.linkchain.app`,
-        displayName,
-        walletAddress,
-      });
-      await user.save();
+      const { data: newUser, error } = await supabase
+        .from('linkinbio_users')
+        .insert({
+          username: username.toLowerCase(),
+          email: `${username}@wallet.linkchain.app`,
+          display_name: displayName,
+          wallet_address: walletAddress,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      user = newUser;
     } else if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
 
     // Generate token
-    const token = jwt.sign({ userId: user._id, username: user.username }, JWT_SECRET, {
+    const token = jwt.sign({ userId: user.id, username: user.username }, JWT_SECRET, {
       expiresIn: '30d',
     });
 
     res.json({
       token,
       user: {
-        id: user._id,
+        id: user.id,
         username: user.username,
-        displayName: user.displayName,
-        walletAddress: user.walletAddress,
+        displayName: user.display_name,
+        walletAddress: user.wallet_address,
       },
     });
   } catch (error) {

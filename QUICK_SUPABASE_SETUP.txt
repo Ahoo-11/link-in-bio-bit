@@ -1,0 +1,101 @@
+═══════════════════════════════════════════════════════════════════
+  QUICK SUPABASE SETUP - Get Running in 5 Minutes! 🚀
+═══════════════════════════════════════════════════════════════════
+
+STEP 1: Create Supabase Account (2 minutes)
+────────────────────────────────────────────────────────────────────
+1. Go to https://supabase.com
+2. Sign up (it's FREE!)
+3. Click "New Project"
+4. Fill in:
+   - Project name: linkchain (or anything you want)
+   - Database password: (choose a secure one)
+   - Region: (choose closest to you)
+5. Wait ~2 minutes for it to provision
+
+
+STEP 2: Run the SQL Migration (30 seconds)
+────────────────────────────────────────────────────────────────────
+1. In your Supabase dashboard, click "SQL Editor" on the left
+2. Click "New Query"
+3. Open the file: backend/supabase-migration.sql
+4. Copy ALL the SQL code
+5. Paste it into the SQL Editor
+6. Click "Run" button (or press Ctrl+Enter)
+7. You should see success messages - tables created!
+
+
+STEP 3: Get Your Credentials (30 seconds)
+────────────────────────────────────────────────────────────────────
+1. In Supabase dashboard, click "Settings" → "API"
+2. You'll see:
+   - Project URL (copy it)
+   - anon public key
+   - service_role key (copy this one - it's the secret one)
+
+
+STEP 4: Update .env.local (1 minute)
+────────────────────────────────────────────────────────────────────
+1. Open .env.local in your project
+2. Replace/add these lines:
+
+SUPABASE_URL=YOUR_PROJECT_URL_HERE
+SUPABASE_SERVICE_KEY=YOUR_SERVICE_ROLE_KEY_HERE
+JWT_SECRET=any-random-string-here-make-it-long
+NEXT_PUBLIC_NETWORK=testnet
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+NEXT_PUBLIC_API_URL=http://localhost:5000
+
+3. Save the file
+
+
+STEP 5: Install & Run (2 minutes)
+────────────────────────────────────────────────────────────────────
+In your terminal:
+
+npm install
+npm run dev:all
+
+That's it! The app will start:
+- Frontend: http://localhost:3000
+- Backend: http://localhost:5000
+
+
+═══════════════════════════════════════════════════════════════════
+  WHAT CHANGED?
+═══════════════════════════════════════════════════════════════════
+
+✅ Switched from MongoDB to Supabase (PostgreSQL)
+✅ All tables use "linkinbio_" prefix (linkinbio_users, linkinbio_tips, linkinbio_analytics)
+✅ Removed mongoose dependency
+✅ Added @supabase/supabase-js
+✅ All API routes updated to use Supabase queries
+
+
+═══════════════════════════════════════════════════════════════════
+  TROUBLESHOOTING
+═══════════════════════════════════════════════════════════════════
+
+❌ "Supabase connection error"
+   → Check your SUPABASE_URL and SUPABASE_SERVICE_KEY are correct
+   → Make sure there are no extra spaces in .env.local
+
+❌ "Tables not found"
+   → Make sure you ran the SQL migration in Supabase SQL Editor
+   → Check in Supabase → Table Editor to see if tables exist
+
+❌ "Port 5000 already in use"
+   → On Windows: netstat -ano | findstr :5000
+   → Then: taskkill /PID <PID> /F
+   → Or change PORT=5001 in .env.local
+
+
+═══════════════════════════════════════════════════════════════════
+  NEED MORE HELP?
+═══════════════════════════════════════════════════════════════════
+
+📖 Full docs: SUPABASE_SETUP.md
+📖 Features: FEATURES.md
+📖 Commands: COMMANDS.md
+
+You're all set! Go build something awesome! 🎉

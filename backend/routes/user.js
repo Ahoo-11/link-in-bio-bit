@@ -1,13 +1,18 @@
 const express = require('express');
 const router = express.Router();
-const User = require('../models/User');
+const supabase = require('../db');
 const { authenticateToken } = require('../middleware/auth');
 
 // Get user profile
 router.get('/profile', authenticateToken, async (req, res) => {
   try {
-    const user = await User.findById(req.userId).select('-password');
-    if (!user) {
+    const { data: user, error } = await supabase
+      .from('linkinbio_users')
+      .select('id, username, email, display_name, bio, avatar, cover_image, wallet_address, buttons, style, settings, stats, created_at, updated_at')
+      .eq('id', req.userId)
+      .single();
+
+    if (error || !user) {
       return res.status(404).json({ message: 'User not found' });
     }
     res.json(user);
@@ -22,18 +27,23 @@ router.put('/profile', authenticateToken, async (req, res) => {
   try {
     const { displayName, bio, avatar, coverImage, walletAddress } = req.body;
 
-    const user = await User.findById(req.userId);
-    if (!user) {
+    const updates = {};
+    if (displayName) updates.display_name = displayName;
+    if (bio !== undefined) updates.bio = bio;
+    if (avatar !== undefined) updates.avatar = avatar;
+    if (coverImage !== undefined) updates.cover_image = coverImage;
+    if (walletAddress !== undefined) updates.wallet_address = walletAddress;
+
+    const { data: user, error } = await supabase
+      .from('linkinbio_users')
+      .update(updates)
+      .eq('id', req.userId)
+      .select()
+      .single();
+
+    if (error || !user) {
       return res.status(404).json({ message: 'User not found' });
     }
-
-    if (displayName) user.displayName = displayName;
-    if (bio !== undefined) user.bio = bio;
-    if (avatar !== undefined) user.avatar = avatar;
-    if (coverImage !== undefined) user.coverImage = coverImage;
-    if (walletAddress !== undefined) user.walletAddress = walletAddress;
-
-    await user.save();
 
     res.json(user);
   } catch (error) {
@@ -47,18 +57,30 @@ router.put('/settings', authenticateToken, async (req, res) => {
   try {
     const { emailNotifications, showEarnings, requireMessage } = req.body;
 
-    const user = await User.findById(req.userId);
-    if (!user) {
+    // Get current user to merge settings
+    const { data: currentUser } = await supabase
+      .from('linkinbio_users')
+      .select('settings')
+      .eq('id', req.userId)
+      .single();
+
+    if (!currentUser) {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    if (emailNotifications !== undefined) user.settings.emailNotifications = emailNotifications;
-    if (showEarnings !== undefined) user.settings.showEarnings = showEarnings;
-    if (requireMessage !== undefined) user.settings.requireMessage = requireMessage;
+    const updatedSettings = { ...currentUser.settings };
+    if (emailNotifications !== undefined) updatedSettings.emailNotifications = emailNotifications;
+    if (showEarnings !== undefined) updatedSettings.showEarnings = showEarnings;
+    if (requireMessage !== undefined) updatedSettings.requireMessage = requireMessage;
 
-    await user.save();
+    const { error } = await supabase
+      .from('linkinbio_users')
+      .update({ settings: updatedSettings })
+      .eq('id', req.userId);
 
-    res.json({ message: 'Settings updated successfully', settings: user.settings });
+    if (error) throw error;
+
+    res.json({ message: 'Settings updated successfully', settings: updatedSettings });
   } catch (error) {
     console.error('Update settings error:', error);
     res.status(500).json({ message: 'Server error' });

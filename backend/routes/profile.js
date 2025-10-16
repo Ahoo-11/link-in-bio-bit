@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const User = require('../models/User');
+const supabase = require('../db');
 const { authenticateToken } = require('../middleware/auth');
 
 // Get public profile by username
@@ -8,10 +8,13 @@ router.get('/:username', async (req, res) => {
   try {
     const { username } = req.params;
     
-    const user = await User.findOne({ username: username.toLowerCase() })
-      .select('-password -email -settings');
+    const { data: user, error } = await supabase
+      .from('linkinbio_users')
+      .select('id, username, display_name, bio, avatar, cover_image, wallet_address, buttons, style, stats, created_at')
+      .eq('username', username.toLowerCase())
+      .single();
     
-    if (!user) {
+    if (error || !user) {
       return res.status(404).json({ message: 'Profile not found' });
     }
 
@@ -27,22 +30,29 @@ router.post('/update', authenticateToken, async (req, res) => {
   try {
     const { profile, buttons, style } = req.body;
 
-    const user = await User.findById(req.userId);
-    if (!user) {
+    const { data: currentUser } = await supabase
+      .from('linkinbio_users')
+      .select('*')
+      .eq('id', req.userId)
+      .single();
+
+    if (!currentUser) {
       return res.status(404).json({ message: 'User not found' });
     }
 
+    const updates = {};
+
     // Update profile info
     if (profile) {
-      if (profile.displayName) user.displayName = profile.displayName;
-      if (profile.bio !== undefined) user.bio = profile.bio;
-      if (profile.avatar !== undefined) user.avatar = profile.avatar;
-      if (profile.coverImage !== undefined) user.coverImage = profile.coverImage;
+      if (profile.displayName) updates.display_name = profile.displayName;
+      if (profile.bio !== undefined) updates.bio = profile.bio;
+      if (profile.avatar !== undefined) updates.avatar = profile.avatar;
+      if (profile.coverImage !== undefined) updates.cover_image = profile.coverImage;
     }
 
     // Update buttons
     if (buttons) {
-      user.buttons = buttons.map((btn, index) => ({
+      updates.buttons = buttons.map((btn, index) => ({
         ...btn,
         order: index,
       }));
@@ -50,10 +60,17 @@ router.post('/update', authenticateToken, async (req, res) => {
 
     // Update style
     if (style) {
-      user.style = { ...user.style, ...style };
+      updates.style = { ...currentUser.style, ...style };
     }
 
-    await user.save();
+    const { data: user, error } = await supabase
+      .from('linkinbio_users')
+      .update(updates)
+      .eq('id', req.userId)
+      .select()
+      .single();
+
+    if (error) throw error;
 
     res.json({ message: 'Profile updated successfully', user });
   } catch (error) {
@@ -66,7 +83,11 @@ router.post('/update', authenticateToken, async (req, res) => {
 router.get('/check/:username', async (req, res) => {
   try {
     const { username } = req.params;
-    const user = await User.findOne({ username: username.toLowerCase() });
+    const { data: user } = await supabase
+      .from('linkinbio_users')
+      .select('id')
+      .eq('username', username.toLowerCase())
+      .single();
     
     res.json({ available: !user });
   } catch (error) {

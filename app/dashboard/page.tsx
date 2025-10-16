@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { 
   DollarSign, 
@@ -21,8 +22,10 @@ import { toast } from "sonner";
 import { getCreatorEarnings, getTipCount } from "@/lib/stacks";
 import { formatCurrency, formatRelativeTime } from "@/lib/utils";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { api } from "@/lib/api";
 
 export default function DashboardPage() {
+  const router = useRouter();
   const [stats, setStats] = useState({
     totalEarnings: 0,
     tipCount: 0,
@@ -34,41 +37,50 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Check if user is authenticated
+    const token = localStorage.getItem("token");
+    if (!token) {
+      toast.error("Please log in to view dashboard");
+      router.push("/login");
+      return;
+    }
+    
     loadDashboardData();
-  }, []);
+  }, [router]);
 
   const loadDashboardData = async () => {
     try {
       // Load user profile
-      const token = localStorage.getItem("token");
-      const profileResponse = await fetch("/api/user/profile", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const profileData = await profileResponse.json();
+      const profileData = await api.user.getProfile();
       setUsername(profileData.username);
 
-      // Load blockchain earnings
-      if (profileData.walletAddress) {
-        const earnings = await getCreatorEarnings(profileData.walletAddress);
-        const tipCount = await getTipCount(profileData.walletAddress);
-        
-        setStats({
-          totalEarnings: earnings,
-          tipCount,
-          visitors: profileData.visitors || 0,
-          conversionRate: profileData.conversionRate || 0,
-        });
-      }
+      // Load analytics data
+      const analyticsData = await api.analytics.getDashboard();
+      
+      // Load tip stats
+      const tipStats = await api.tips.getStats();
+
+      setStats({
+        totalEarnings: tipStats.totalEarnings || 0,
+        tipCount: tipStats.tipCount || 0,
+        visitors: analyticsData.visits || 0,
+        conversionRate: parseFloat(analyticsData.conversionRate) || 0,
+      });
 
       // Load recent tips
-      const tipsResponse = await fetch("/api/tips/recent", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const tipsData = await tipsResponse.json();
-      setRecentTips(tipsData);
-    } catch (error) {
+      const tipsData = await api.tips.getRecent();
+      setRecentTips(tipsData || []);
+    } catch (error: any) {
       console.error("Error loading dashboard:", error);
-      toast.error("Failed to load dashboard data");
+      
+      // If unauthorized, redirect to login
+      if (error.message?.includes("Failed to fetch profile") || error.message?.includes("401")) {
+        toast.error("Session expired. Please log in again.");
+        localStorage.removeItem("token");
+        router.push("/login");
+      } else {
+        toast.error("Failed to load dashboard data. Make sure the backend server is running on port 5000.");
+      }
     } finally {
       setLoading(false);
     }

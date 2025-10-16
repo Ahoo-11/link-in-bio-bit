@@ -35,7 +35,7 @@ LinkChain makes it **ridiculously easy** for creators to receive cryptocurrency 
 
 - **Frontend**: Next.js 14, React, TypeScript, Tailwind CSS
 - **Blockchain**: Stacks (Clarity smart contracts)
-- **Backend**: Node.js, Express, MongoDB
+- **Backend**: Node.js, Express, Supabase (PostgreSQL)
 - **UI Libraries**: Framer Motion, Recharts, Lucide Icons, Sonner
 - **Wallet Integration**: @stacks/connect
 
@@ -64,8 +64,9 @@ Need more guidance? We have comprehensive documentation:
 Create a `.env.local` file with:
 
 ```env
-# MongoDB
-MONGODB_URI=your_mongodb_connection_string
+# Supabase
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_SERVICE_KEY=your-service-role-key
 
 # JWT Secret
 JWT_SECRET=your_secure_jwt_secret
@@ -83,7 +84,10 @@ EMAIL_PASS=your_password
 
 # App URL
 NEXT_PUBLIC_APP_URL=http://localhost:3000
+NEXT_PUBLIC_API_URL=http://localhost:5000
 ```
+
+📖 **[Supabase Setup Guide](./SUPABASE_SETUP.md)** - Complete database setup instructions
 
 ## Smart Contract Deployment
 
@@ -114,8 +118,9 @@ linkchain/
 │   └── linkchain-tips.clar
 ├── backend/               # Express backend
 │   ├── server.js          # Main server
-│   ├── models/            # Mongoose models
-│   └── routes/            # API routes
+│   ├── db.js              # Supabase client
+│   ├── routes/            # API routes
+│   └── supabase-migration.sql  # Database schema
 └── public/                # Static assets
 ```
 

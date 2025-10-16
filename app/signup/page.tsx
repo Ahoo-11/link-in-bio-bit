@@ -8,8 +8,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
-import { connectWallet } from "@/lib/stacks";
+import { connectWallet, getUserAddress, getUserProfile } from "@/lib/stacks";
 import { toast } from "sonner";
+import { api } from "@/lib/api";
 
 function SignupContent() {
   const searchParams = useSearchParams();
@@ -28,35 +29,54 @@ function SignupContent() {
     setLoading(true);
 
     try {
-      // API call to create user
-      const response = await fetch("/api/auth/signup", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        localStorage.setItem("token", data.token);
-        toast.success("Account created successfully!");
-        router.push("/dashboard");
-      } else {
-        const error = await response.json();
-        toast.error(error.message || "Signup failed");
-      }
-    } catch (error) {
-      toast.error("An error occurred. Please try again.");
+      const response = await api.auth.signup(formData);
+      localStorage.setItem("token", response.token);
+      toast.success("Account created successfully!");
+      router.push("/dashboard");
+    } catch (error: any) {
+      toast.error(error.message || "Signup failed");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleWalletSignup = () => {
-    connectWallet((userData) => {
-      toast.success("Wallet connected! Creating your profile...");
-      // Store wallet data and redirect to profile setup
-      router.push("/onboarding?wallet=connected");
-    });
+  const handleWalletSignup = async () => {
+    setLoading(true);
+    
+    try {
+      connectWallet(async (userData) => {
+        try {
+          const walletAddress = getUserAddress();
+          
+          if (!walletAddress) {
+            toast.error("Failed to get wallet address");
+            setLoading(false);
+            return;
+          }
+
+          // Create account with wallet
+          const username = formData.username || userData.username || `user${Date.now()}`;
+          const displayName = formData.displayName || userData.profile?.name || username;
+
+          // Call backend wallet-login API (creates account if doesn't exist)
+          const response = await api.auth.walletLogin(walletAddress, username, displayName);
+          
+          // Store token
+          localStorage.setItem("token", response.token);
+          
+          toast.success("Account created successfully!");
+          router.push("/dashboard");
+        } catch (error: any) {
+          console.error("Wallet signup error:", error);
+          toast.error(error.message || "Failed to create account");
+          setLoading(false);
+        }
+      });
+    } catch (error) {
+      console.error("Wallet connection error:", error);
+      toast.error("Failed to connect wallet");
+      setLoading(false);
+    }
   };
 
   return (
