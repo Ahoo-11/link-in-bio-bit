@@ -6,7 +6,14 @@ require('dotenv').config({ path: path.resolve(__dirname, '../.env.local') });
 const app = express();
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: [
+    'http://localhost:3000',
+    'https://link-in-bio-bit-seven.vercel.app',
+    /\.vercel\.app$/ // Allow all Vercel preview URLs
+  ],
+  credentials: true
+}));
 app.use(express.json());
 
 // Supabase Connection (initialized in db.js)
