@@ -11,17 +11,26 @@ router.post('/signup', async (req, res) => {
   try {
     const { username, email, password, displayName, walletAddress } = req.body;
 
-    // Validate input
-    if (!username || !email || !displayName) {
+    // Validate input - email optional if wallet provided
+    if (!username || !displayName) {
       return res.status(400).json({ message: 'Missing required fields' });
+    }
+    
+    if (!email && !walletAddress) {
+      return res.status(400).json({ message: 'Either email or wallet address is required' });
     }
 
     // Check if user exists
+    let query = `username.eq.${username.toLowerCase()}`;
+    if (email) {
+      query += `,email.eq.${email.toLowerCase()}`;
+    }
+    
     const { data: existingUser } = await supabase
       .from('linkinbio_users')
       .select('*')
-      .or(`username.eq.${username.toLowerCase()},email.eq.${email.toLowerCase()}`)
-      .single();
+      .or(query)
+      .maybeSingle();
 
     if (existingUser) {
       return res.status(400).json({ message: 'Username or email already exists' });
@@ -38,7 +47,7 @@ router.post('/signup', async (req, res) => {
       .from('linkinbio_users')
       .insert({
         username: username.toLowerCase(),
-        email: email.toLowerCase(),
+        email: email ? email.toLowerCase() : null,
         password: hashedPassword,
         display_name: displayName,
         wallet_address: walletAddress || '',
@@ -142,14 +151,14 @@ router.post('/wallet-login', async (req, res) => {
       .single();
 
     if (!user && username && displayName) {
-      // Create new user
+      // Create new user (wallet-only, no email required)
       const { data: newUser, error } = await supabase
         .from('linkinbio_users')
         .insert({
           username: username.toLowerCase(),
-          email: `${username}@wallet.linkchain.app`,
           display_name: displayName,
           wallet_address: walletAddress,
+          email: null, // Wallet users don't need email
         })
         .select()
         .single();

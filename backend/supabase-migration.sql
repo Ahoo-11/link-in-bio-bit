@@ -5,8 +5,8 @@
 CREATE TABLE IF NOT EXISTS linkinbio_users (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   username TEXT UNIQUE NOT NULL,
-  email TEXT UNIQUE NOT NULL,
-  password TEXT,
+  email TEXT UNIQUE, -- Optional: wallet users don't need email
+  password TEXT, -- Optional: wallet users don't need password
   display_name TEXT NOT NULL,
   bio TEXT DEFAULT '',
   avatar TEXT DEFAULT '',
