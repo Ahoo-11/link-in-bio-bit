@@ -3,11 +3,11 @@ import { supabase } from '@/lib/supabase';
 
 export async function POST(request: Request) {
   try {
-    const { username } = await request.json();
+    const { username, buttonId } = await request.json();
     
-    if (!username) {
+    if (!username || !buttonId) {
       return NextResponse.json(
-        { message: 'Username is required' },
+        { message: 'Missing required fields' },
         { status: 400 }
       );
     }
@@ -26,12 +26,13 @@ export async function POST(request: Request) {
       );
     }
 
-    // Record visit in analytics table
+    // Record click in analytics table
     const { error: analyticsError } = await supabase
       .from('linkinbio_analytics')
       .insert({
         username: username.toLowerCase(),
-        event_type: 'visit',
+        event_type: 'click',
+        button_id: buttonId,
         metadata: {
           timestamp: new Date().toISOString(),
         },
@@ -49,7 +50,7 @@ export async function POST(request: Request) {
       .update({
         stats: {
           ...currentStats,
-          totalVisits: (currentStats.totalVisits || 0) + 1,
+          totalClicks: (currentStats.totalClicks || 0) + 1,
         },
       })
       .eq('username', username.toLowerCase());
@@ -60,9 +61,9 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Analytics visit error:', error);
+    console.error('Click tracking error:', error);
     return NextResponse.json(
-      { message: 'Server error' },
+      { message: 'Failed to track click' },
       { status: 500 }
     );
   }

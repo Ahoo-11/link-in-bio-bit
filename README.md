@@ -1,223 +1,296 @@
-# LinkChain 🔗⚡
+# LinkChain - Blockchain Link-in-Bio Platform
 
-> **A Linktree alternative built on Stacks blockchain** - Accept crypto tips through beautiful, customizable link-in-bio pages.
+A decentralized link-in-bio platform built on **Stacks blockchain** with **Clarity smart contracts** for direct STX payments to creators.
 
-[![Made with Next.js](https://img.shields.io/badge/Next.js-14-black)](https://nextjs.org/)
-[![Built on Stacks](https://img.shields.io/badge/Stacks-Blockchain-purple)](https://stacks.co/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.3-blue)](https://www.typescriptlang.org/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+## Overview
 
-## ✨ What is LinkChain?
+LinkChain enables creators to accept cryptocurrency tips through customizable profile pages. Built with Stacks.js, featuring on-chain payments via Clarity smart contracts, and YouTube content integration.
 
-LinkChain makes it **ridiculously easy** for creators to receive cryptocurrency payments. Share one link, accept tips in crypto, and get paid instantly—all with zero blockchain jargon.
-
-### Key Features
-
-✨ **Beautiful Profile Pages** - Customizable templates, colors, and layouts  
-💰 **Direct Crypto Tips** - Accept payments in STX with preset or custom amounts  
-📊 **Analytics Dashboard** - Track earnings, tips, and visitor analytics  
-🎨 **Full Customization** - Drag-and-drop buttons, custom styling, themes  
-📱 **Mobile-First Design** - Perfect experience on all devices  
-🔒 **Secure** - Built on Stacks blockchain with smart contracts  
-🌐 **Open Source** - Self-hostable, community-driven
-
-### Why LinkChain?
-
-| Feature | LinkChain | Traditional Platforms |
-|---------|-----------|----------------------|
-| Crypto Payments | ✅ Native | ❌ or 🔌 Plugins |
-| Transaction Fees | 2% | 5-10% |
-| Open Source | ✅ | ❌ |
-| Self-Hostable | ✅ | ❌ |
-| No Commission | ✅ | ❌ |
-
-## Tech Stack
-
-- **Frontend**: Next.js 14, React, TypeScript, Tailwind CSS
-- **Blockchain**: Stacks (Clarity smart contracts)
-- **Backend**: Node.js, Express, Supabase (PostgreSQL)
-- **UI Libraries**: Framer Motion, Recharts, Lucide Icons, Sonner
-- **Wallet Integration**: @stacks/connect
-
-## 🚀 Quick Start
-
-### One-Line Install
-```bash
-npm install && cp .env.example .env.local && npm run dev
-```
-
-**That's it!** Open http://localhost:3000 and start building your profile.
-
-### Detailed Setup
-
-Need more guidance? We have comprehensive documentation:
-
-📖 **[Quick Start Guide](./QUICKSTART.md)** - Get running in 5 minutes  
-📖 **[Full Setup Guide](./SETUP.md)** - Detailed installation instructions  
-📖 **[Deployment Guide](./DEPLOYMENT.md)** - Deploy to production  
-📖 **[Command Reference](./COMMANDS.md)** - All commands you'll need  
-📖 **[Feature List](./FEATURES.md)** - Complete feature documentation  
-📖 **[Project Summary](./PROJECT_SUMMARY.md)** - Architecture and overview
-
-### Environment Variables
-
-Create a `.env.local` file with:
-
-```env
-# Supabase
-SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_SERVICE_KEY=your-service-role-key
-
-# JWT Secret
-JWT_SECRET=your_secure_jwt_secret
-
-# Stacks Network
-NEXT_PUBLIC_NETWORK=testnet
-NEXT_PUBLIC_CONTRACT_ADDRESS=your_contract_address
-NEXT_PUBLIC_CONTRACT_NAME=linkchain-tips
-
-# Email (optional)
-EMAIL_HOST=smtp.gmail.com
-EMAIL_PORT=587
-EMAIL_USER=your_email
-EMAIL_PASS=your_password
-
-# App URL
-NEXT_PUBLIC_APP_URL=http://localhost:3000
-NEXT_PUBLIC_API_URL=http://localhost:5000
-```
-
-📖 **[Supabase Setup Guide](./SUPABASE_SETUP.md)** - Complete database setup instructions
-
-## Smart Contract Deployment
-
-1. Navigate to the `contracts` directory
-2. Deploy the `linkchain-tips.clar` contract to Stacks testnet using Clarinet or Hiro Platform
-3. Update `.env.local` with the deployed contract address
-
-## Project Structure
-
-```
-linkchain/
-├── app/                    # Next.js app directory
-│   ├── page.tsx           # Landing page
-│   ├── dashboard/         # Creator dashboard
-│   ├── editor/            # Profile editor
-│   ├── [username]/        # Public profile pages
-│   └── api/               # API routes
-├── components/            # React components
-│   ├── ui/                # shadcn/ui components
-│   ├── dashboard/         # Dashboard components
-│   ├── editor/            # Editor components
-│   └── profile/           # Profile view components
-├── lib/                   # Utility functions
-│   ├── stacks.ts          # Blockchain utilities
-│   ├── db.ts              # Database utilities
-│   └── utils.ts           # General utilities
-├── contracts/             # Clarity smart contracts
-│   └── linkchain-tips.clar
-├── backend/               # Express backend
-│   ├── server.js          # Main server
-│   ├── db.js              # Supabase client
-│   ├── routes/            # API routes
-│   └── supabase-migration.sql  # Database schema
-└── public/                # Static assets
-```
-
-## Usage
-
-### For Creators
-
-1. **Sign up** - Create account with email or connect wallet
-2. **Customize** - Choose template, add buttons, customize colors
-3. **Share** - Get your unique `linkchain.app/username` link
-4. **Earn** - Receive tips directly to your wallet
-
-### For Supporters
-
-1. **Visit** - Open creator's LinkChain profile
-2. **Select Amount** - Choose preset or custom tip amount
-3. **Pay** - Connect wallet and confirm transaction
-4. **Celebrate** - See success animation and support the creator
-
-## Key Features
-
-### Profile Customization
-- 5 professional templates
-- 10 color schemes + custom colors
-- Light/dark mode
-- Custom fonts and backgrounds
-- Drag-and-drop button ordering
-
-### Payment Options
-- Preset tip amounts ($5, $10, $25, $50)
-- Custom amount input
-- Anonymous tipping option
-- Instant confirmation
-- Success celebrations
-
-### Analytics
-- Total earnings
-- Recent tips list
-- Earnings charts
-- Transaction history
-- Export to CSV
-
-## Development
-
-```bash
-# Development mode
-npm run dev
-
-# Build for production
-npm run build
-
-# Start production server
-npm start
-
-# Run backend
-npm run server
-```
-
-## Testing
-
-Test the app with Stacks testnet:
-1. Get testnet STX from faucet
-2. Connect wallet to testnet
-3. Send test tips
-4. Verify transactions on explorer
-
-## Deployment
-
-### Frontend (Vercel)
-1. Push to GitHub
-2. Import to Vercel
-3. Add environment variables
-4. Deploy
-
-### Backend (Railway/Heroku)
-1. Push to GitHub
-2. Connect to hosting platform
-3. Add environment variables
-4. Deploy
-
-### Smart Contract
-1. Deploy to Stacks mainnet using Clarinet
-2. Update frontend with contract address
-3. Test thoroughly before going live
-
-## Contributing
-
-Contributions welcome! Please open an issue or PR.
-
-## License
-
-MIT License
-
-## Support
-
-For questions or support, open an issue on GitHub.
+**Tech Stack:**
+- **Blockchain:** Stacks (Clarity smart contracts)
+- **Frontend:** Next.js 14, React, TypeScript, Tailwind CSS
+- **Backend:** Node.js, Express, Supabase (PostgreSQL)
+- **Wallet:** @stacks/connect, @stacks/transactions
 
 ---
 
-Built with ❤️ for creators worldwide
+## 🚀 Quick Start
+
+### Prerequisites
+- Node.js 18+
+- npm or yarn
+- Supabase account (free tier)
+
+### Installation
+
+```bash
+# Clone repository
+git clone <repo-url>
+cd link-in-bio-bit
+
+# Install dependencies
+npm install
+
+# Set up environment
+cp .env.example .env.local
+
+# Run database migration (see Supabase Setup below)
+
+# Start development servers
+npm run dev:all
+```
+
+**Access:**
+- Frontend: http://localhost:3000
+- Backend API: http://localhost:5000
+
+---
+
+## ⚙️ Environment Setup
+
+Create `.env.local`:
+
+```env
+# Supabase
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+SUPABASE_SERVICE_KEY=your-service-role-key
+
+# Backend
+JWT_SECRET=your_random_jwt_secret_min_32_chars
+PORT=5000
+
+# Stacks Blockchain
+NEXT_PUBLIC_NETWORK=testnet
+NEXT_PUBLIC_CONTRACT_ADDRESS=ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM
+NEXT_PUBLIC_CONTRACT_NAME=linkchain-tips
+
+# App URLs
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+NEXT_PUBLIC_API_URL=http://localhost:5000
+
+# Optional: OpenRouter AI (for AI assistant)
+OPENROUTER_API_KEY=your_openrouter_key
+```
+
+---
+
+## 🔗 Supabase Setup
+
+1. **Create Project:** https://supabase.com/dashboard
+2. **Run Migration:**
+
+```bash
+# In Supabase SQL Editor, run:
+backend/supabase-migration.sql
+```
+
+3. **Get Credentials:**
+   - Project URL → `NEXT_PUBLIC_SUPABASE_URL`
+   - Settings → API → anon public → `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+   - Settings → API → service_role → `SUPABASE_SERVICE_KEY`
+
+---
+
+## 🔐 Stacks Blockchain Integration
+
+### Smart Contract (`contracts/linkchain-tips.clar`)
+
+**On-chain functionality:**
+- Direct STX transfers between users
+- 2% platform fee collection
+- Earnings tracking per creator
+- Tip history with messages
+- Anonymous tipping support
+
+**Key Functions:**
+```clarity
+(define-public (send-tip 
+  (creator principal) 
+  (amount uint) 
+  (message (optional (string-utf8 280)))
+  (anonymous bool)
+)
+
+(define-read-only (get-creator-earnings (creator principal))
+(define-read-only (get-tip-count (creator principal))
+```
+
+### Wallet Integration (`lib/stacks.ts`)
+
+**Using Stacks.js:**
+```typescript
+// Connect wallet
+import { showConnect } from '@stacks/connect';
+
+// Execute contract call
+import { makeContractCall, broadcastTransaction } from '@stacks/transactions';
+
+// Read blockchain state
+import { callReadOnlyFunction } from '@stacks/transactions';
+```
+
+**Features:**
+- Hiro/Leather wallet connection
+- Mainnet/Testnet support
+- Transaction broadcasting
+- Read-only function calls
+- Balance queries via Stacks API
+
+---
+
+## 🏗️ Architecture
+
+```
+┌─────────────┐
+│   Next.js   │ ← Frontend (React, TypeScript)
+│  Frontend   │
+└──────┬──────┘
+       │
+       ├─────────────────┐
+       │                 │
+┌──────▼──────┐   ┌──────▼──────┐
+│   Express   │   │   Stacks    │
+│   Backend   │   │ Blockchain  │
+└──────┬──────┘   └──────┬──────┘
+       │                 │
+┌──────▼──────┐   ┌──────▼──────┐
+│  Supabase   │   │  Clarity    │
+│  Database   │   │  Contract   │
+└─────────────┘   └─────────────┘
+```
+
+**Data Flow:**
+1. User connects Stacks wallet (@stacks/connect)
+2. Frontend calls smart contract (makeContractCall)
+3. Transaction broadcast to Stacks blockchain
+4. Backend stores metadata in Supabase
+5. Analytics tracked via visitor tracking system
+
+---
+
+## 📦 Key Features
+
+### Blockchain Features
+- ✅ Clarity smart contract for tipping
+- ✅ Wallet authentication (Hiro/Leather)
+- ✅ On-chain payment verification
+- ✅ Mainnet/Testnet support
+- ✅ Direct STX transfers (peer-to-peer)
+
+### Platform Features
+- ✅ Customizable profile pages
+- ✅ YouTube integration (RSS-based, no OAuth)
+- ✅ Visitor analytics with session tracking
+- ✅ AI assistant (OpenRouter integration)
+- ✅ Real-time earnings dashboard
+
+---
+
+## 🧪 Testing
+
+### Test on Stacks Testnet
+
+1. **Get Testnet STX:**
+   - https://explorer.stacks.co/sandbox/faucet
+
+2. **Connect Wallet:**
+   - Use Hiro/Leather wallet
+   - Switch to Testnet
+
+3. **Test Tipping:**
+   - Create profile
+   - Connect wallet
+   - Send test tip
+   - Verify on explorer
+
+**Testnet Explorer:** https://explorer.stacks.co/?chain=testnet
+
+---
+
+## 📁 Project Structure
+
+```
+├── app/                      # Next.js App Router
+│   ├── [username]/          # Public profiles
+│   ├── dashboard/           # Creator dashboard
+│   ├── editor/              # Profile customization
+│   └── analytics/           # Analytics page
+├── backend/
+│   ├── routes/              # Express API routes
+│   ├── services/            # Business logic
+│   │   ├── oauth-service.js         # OAuth handling
+│   │   ├── integration-manager.js   # External integrations
+│   │   └── integrations/
+│   │       ├── spotify-connector.js
+│   │       └── youtube-connector.js # RSS-based YouTube
+│   └── supabase-migration.sql       # Database schema
+├── contracts/
+│   └── linkchain-tips.clar  # Clarity smart contract
+├── lib/
+│   ├── stacks.ts           # Blockchain utilities
+│   └── visitor-tracking.ts # Analytics tracking
+└── components/
+    ├── AIChat.tsx          # AI assistant widget
+    └── visitor-analytics.tsx
+```
+
+---
+
+## 🚢 Deployment
+
+### Smart Contract
+```bash
+# Using Clarinet
+clarinet deploy contracts/linkchain-tips.clar --network testnet
+
+# Update .env.local with deployed address
+NEXT_PUBLIC_CONTRACT_ADDRESS=<deployed-address>
+```
+
+### Frontend (Vercel)
+```bash
+vercel --prod
+# Add all environment variables in Vercel dashboard
+```
+
+### Backend (Railway)
+```bash
+railway up
+# Configure environment variables
+```
+
+---
+
+## 🔧 Development Commands
+
+```bash
+# Start frontend + backend
+npm run dev:all
+
+# Frontend only
+npm run dev
+
+# Backend only  
+npm run server
+
+# Build production
+npm run build
+
+# Production server
+npm start
+```
+
+---
+
+## 🤝 Contributing
+
+Built for Stacks hackathon. Contributions welcome!
+
+## 📄 License
+
+MIT License
+
+---
+
+**Built with Stacks blockchain for decentralized creator monetization**

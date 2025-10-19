@@ -13,7 +13,13 @@ import {
   Share2,
   Download,
   Copy,
-  ExternalLink
+  ExternalLink,
+  Sparkles,
+  Lightbulb,
+  Target,
+  RefreshCw,
+  BarChart3,
+  Link as LinkIcon
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -31,10 +37,18 @@ export default function DashboardPage() {
     tipCount: 0,
     visitors: 0,
     conversionRate: 0,
+    earningsChange: 0,
+    tipsChange: 0,
+    visitorsChange: 0,
+    conversionChange: 0,
   });
   const [recentTips, setRecentTips] = useState<any[]>([]);
   const [username, setUsername] = useState("creator");
+  const [displayName, setDisplayName] = useState("User");
   const [loading, setLoading] = useState(true);
+  const [earningsChartData, setEarningsChartData] = useState<any[]>([]);
+  const [aiInsights, setAiInsights] = useState<any>(null);
+  const [loadingInsights, setLoadingInsights] = useState(false);
 
   useEffect(() => {
     // Check if user is authenticated
@@ -53,23 +67,63 @@ export default function DashboardPage() {
       // Load user profile
       const profileData = await api.user.getProfile();
       setUsername(profileData.username);
+      setDisplayName(profileData.display_name || profileData.username);
 
-      // Load analytics data
-      const analyticsData = await api.analytics.getDashboard();
+      // Get date ranges for current and last week
+      const now = new Date();
+      const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+
+      // Load analytics data for current week
+      const analyticsData = await api.analytics.getDashboard(
+        sevenDaysAgo.toISOString(),
+        now.toISOString()
+      );
+      
+      // Load analytics data for last week
+      const lastWeekAnalyticsData = await api.analytics.getDashboard(
+        fourteenDaysAgo.toISOString(),
+        sevenDaysAgo.toISOString()
+      );
       
       // Load tip stats
       const tipStats = await api.tips.getStats();
+
+      // Calculate changes
+      const earningsChange = calculatePercentageChange(tipStats.totalEarnings || 0, 0); // We don't have last week earnings yet
+      const tipsChange = calculatePercentageChange(tipStats.tipCount || 0, 0);
+      const visitorsChange = calculatePercentageChange(
+        analyticsData.visits || 0,
+        lastWeekAnalyticsData.visits || 0
+      );
+      const conversionChange = calculatePercentageChange(
+        parseFloat(analyticsData.conversionRate) || 0,
+        parseFloat(lastWeekAnalyticsData.conversionRate) || 0
+      );
 
       setStats({
         totalEarnings: tipStats.totalEarnings || 0,
         tipCount: tipStats.tipCount || 0,
         visitors: analyticsData.visits || 0,
         conversionRate: parseFloat(analyticsData.conversionRate) || 0,
+        earningsChange,
+        tipsChange,
+        visitorsChange,
+        conversionChange,
       });
+
+      // Process chart data from daily earnings
+      if (tipStats.dailyEarnings) {
+        const chartData = processChartData(tipStats.dailyEarnings);
+        setEarningsChartData(chartData);
+      }
 
       // Load recent tips
       const tipsData = await api.tips.getRecent();
       setRecentTips(tipsData || []);
+
+      // Load AI insights
+      loadAiInsights();
     } catch (error: any) {
       console.error("Error loading dashboard:", error);
       
@@ -83,6 +137,50 @@ export default function DashboardPage() {
       }
     } finally {
       setLoading(false);
+    }
+  };
+
+  const calculatePercentageChange = (current: number, previous: number): number => {
+    if (previous === 0) return current > 0 ? 100 : 0;
+    return ((current - previous) / previous) * 100;
+  };
+
+  const processChartData = (dailyEarnings: Record<string, number>) => {
+    const now = new Date();
+    const chartData = [];
+    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+    // Get last 7 days
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
+      const dateStr = date.toISOString().split('T')[0];
+      const dayName = dayNames[date.getDay()];
+      
+      chartData.push({
+        date: dayName,
+        earnings: dailyEarnings[dateStr] || 0,
+      });
+    }
+
+    return chartData;
+  };
+
+  const loadAiInsights = async () => {
+    setLoadingInsights(true);
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch('/api/ai/insights', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setAiInsights(data);
+      }
+    } catch (error) {
+      console.error("Failed to load AI insights:", error);
+    } finally {
+      setLoadingInsights(false);
     }
   };
 
@@ -104,16 +202,6 @@ export default function DashboardPage() {
     }
   };
 
-  // Sample chart data
-  const earningsChartData = [
-    { date: "Mon", earnings: 45 },
-    { date: "Tue", earnings: 78 },
-    { date: "Wed", earnings: 123 },
-    { date: "Thu", earnings: 95 },
-    { date: "Fri", earnings: 167 },
-    { date: "Sat", earnings: 210 },
-    { date: "Sun", earnings: 189 },
-  ];
 
   if (loading) {
     return (
@@ -150,76 +238,213 @@ export default function DashboardPage() {
         </div>
       </nav>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Header */}
-        <div className="mb-8">
-          <h2 className="text-3xl font-bold mb-2">Welcome back, {username}! 👋</h2>
-          <p className="text-muted-foreground">Here's what's happening with your LinkChain</p>
+        <div className="mb-12">
+          <h2 className="text-4xl font-bold mb-3 bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">Welcome back, {displayName}! 👋</h2>
+          <p className="text-lg text-muted-foreground">Here's what's happening with your LinkChain</p>
         </div>
 
-        {/* Quick Actions */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          <Link href="/editor">
-            <Button variant="outline" className="w-full h-24 flex flex-col items-center justify-center">
-              <Palette className="w-6 h-6 mb-2" />
-              <span className="text-sm">Customize</span>
+        {/* Quick Actions Toolbar */}
+        <div className="flex items-center justify-between mb-12 p-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm">
+          {/* Primary Actions */}
+          <div className="flex items-center gap-2">
+            <Link href="/editor">
+              <Button 
+                variant="ghost" 
+                size="sm"
+                className="flex items-center gap-2 hover:bg-purple-50 hover:text-purple-600 dark:hover:bg-purple-900/20 transition-all"
+              >
+                <Palette className="w-4 h-4" />
+                <span className="hidden sm:inline">Customize</span>
+              </Button>
+            </Link>
+            
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={shareProfile}
+              className="flex items-center gap-2 hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-900/20 transition-all"
+            >
+              <Share2 className="w-4 h-4" />
+              <span className="hidden sm:inline">Share</span>
             </Button>
-          </Link>
-          <Button
-            variant="outline"
-            className="w-full h-24 flex flex-col items-center justify-center"
-            onClick={shareProfile}
-          >
-            <Share2 className="w-6 h-6 mb-2" />
-            <span className="text-sm">Share</span>
-          </Button>
-          <Button
-            variant="outline"
-            className="w-full h-24 flex flex-col items-center justify-center"
-            onClick={copyProfileLink}
-          >
-            <Copy className="w-6 h-6 mb-2" />
-            <span className="text-sm">Copy Link</span>
-          </Button>
-          <Link href="/analytics">
-            <Button variant="outline" className="w-full h-24 flex flex-col items-center justify-center">
-              <TrendingUp className="w-6 h-6 mb-2" />
-              <span className="text-sm">Analytics</span>
+            
+            <Link href="/analytics">
+              <Button 
+                variant="ghost" 
+                size="sm"
+                className="flex items-center gap-2 hover:bg-green-50 hover:text-green-600 dark:hover:bg-green-900/20 transition-all"
+              >
+                <BarChart3 className="w-4 h-4" />
+                <span className="hidden sm:inline">Analytics</span>
+              </Button>
+            </Link>
+          </div>
+
+          {/* Secondary Actions */}
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={copyProfileLink}
+              className="flex items-center gap-2 hover:bg-gray-50 hover:text-gray-900 dark:hover:bg-gray-700 transition-all"
+            >
+              <LinkIcon className="w-4 h-4" />
+              <span className="hidden md:inline">Copy Link</span>
             </Button>
-          </Link>
+            
+            <div className="w-px h-6 bg-gray-200 dark:bg-gray-700" />
+            
+            <Link href={`/${username}`}>
+              <Button 
+                variant="ghost" 
+                size="sm"
+                className="flex items-center gap-2 hover:bg-gray-50 hover:text-gray-900 dark:hover:bg-gray-700 transition-all"
+              >
+                <ExternalLink className="w-4 h-4" />
+                <span className="hidden md:inline">View Profile</span>
+              </Button>
+            </Link>
+          </div>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid md:grid-cols-4 gap-6 mb-8">
+        {/* Stats Grid */}
+        <div className="grid md:grid-cols-4 gap-6 mb-12">
           <StatCard
             title="Total Earnings"
             value={formatCurrency(stats.totalEarnings)}
             icon={<DollarSign className="w-5 h-5" />}
-            change="+12.5%"
-            positive
+            change={stats.earningsChange}
+            positive={stats.earningsChange >= 0}
           />
           <StatCard
             title="Total Tips"
             value={stats.tipCount.toString()}
             icon={<TrendingUp className="w-5 h-5" />}
-            change="+8.2%"
-            positive
+            change={stats.tipsChange}
+            positive={stats.tipsChange >= 0}
           />
           <StatCard
             title="Profile Visits"
             value={stats.visitors.toString()}
             icon={<Eye className="w-5 h-5" />}
-            change="+23.1%"
-            positive
+            change={stats.visitorsChange}
+            positive={stats.visitorsChange >= 0}
           />
           <StatCard
             title="Conversion"
             value={`${stats.conversionRate}%`}
             icon={<Users className="w-5 h-5" />}
-            change="-2.4%"
-            positive={false}
+            change={stats.conversionChange}
+            positive={stats.conversionChange >= 0}
           />
         </div>
+
+        {/* AI Insights */}
+        {aiInsights && (
+          <Card className="mb-12 border-purple-100 shadow-sm hover:shadow-md transition-shadow">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <Sparkles className="w-5 h-5 text-purple-600" />
+                  <CardTitle>AI Insights</CardTitle>
+                  {aiInsights.cached && (
+                    <span className="text-xs px-2 py-1 bg-green-100 text-green-700 rounded-full">
+                      Today's Insights
+                    </span>
+                  )}
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={loadAiInsights}
+                  disabled={loadingInsights}
+                  title="Refresh insights"
+                >
+                  <RefreshCw className={`w-4 h-4 ${loadingInsights ? 'animate-spin' : ''}`} />
+                </Button>
+              </div>
+              <CardDescription>
+                {aiInsights.generatedAt 
+                  ? `Generated ${new Date(aiInsights.generatedAt).toLocaleString('en-US', { 
+                      month: 'short', 
+                      day: 'numeric', 
+                      hour: 'numeric', 
+                      minute: '2-digit' 
+                    })} • Updates daily`
+                  : 'AI-powered recommendations to boost your profile'
+                }
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-6">
+                {/* Optimization Score */}
+                {aiInsights.score !== null && (
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium">Optimization Score</span>
+                      <span className="text-2xl font-bold text-purple-600">{aiInsights.score}/100</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div
+                        className="bg-gradient-to-r from-purple-600 to-pink-600 h-2 rounded-full transition-all"
+                        style={{ width: `${aiInsights.score}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Insights */}
+                <div>
+                  <h4 className="font-semibold mb-4 flex items-center text-base">
+                    <Lightbulb className="w-5 h-5 mr-2 text-yellow-500" />
+                    Key Insights
+                  </h4>
+                  <div className="grid gap-3">
+                    {aiInsights.insights.map((insight: string, index: number) => (
+                      <div key={index} className="flex items-start space-x-3 p-3 bg-purple-50/50 dark:bg-purple-900/10 rounded-lg">
+                        <div className="w-6 h-6 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center flex-shrink-0 mt-0.5">
+                          <span className="text-purple-600 dark:text-purple-400 text-xs font-semibold">{index + 1}</span>
+                        </div>
+                        <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">{insight}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Recommendations */}
+                {aiInsights.recommendations && aiInsights.recommendations.length > 0 && (
+                  <div>
+                    <h4 className="font-semibold mb-4 flex items-center text-base">
+                      <Target className="w-5 h-5 mr-2 text-green-500" />
+                      Recommended Actions
+                    </h4>
+                    <div className="grid gap-4">
+                      {aiInsights.recommendations.map((rec: any, index: number) => (
+                        <div key={index} className="p-4 bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl hover:shadow-md transition-all">
+                          <div className="flex items-start justify-between gap-3 mb-2">
+                            <span className="text-sm font-semibold text-gray-900 dark:text-white flex-1">{rec.action}</span>
+                            <span className={`text-xs px-2.5 py-1 rounded-full font-medium whitespace-nowrap ${
+                              rec.impact === 'high' 
+                                ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' 
+                                : rec.impact === 'medium'
+                                ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
+                                : 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
+                            }`}>
+                              {rec.impact}
+                            </span>
+                          </div>
+                          <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">{rec.reason}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Charts and Recent Activity */}
         <div className="grid lg:grid-cols-3 gap-6">
@@ -303,9 +528,12 @@ function StatCard({
   title: string;
   value: string;
   icon: React.ReactNode;
-  change: string;
+  change: number;
   positive: boolean;
 }) {
+  const formattedChange = change === 0 ? "No change" : 
+    `${positive ? '+' : ''}${change.toFixed(1)}% from last week`;
+  
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -321,8 +549,8 @@ function StatCard({
             </div>
           </div>
           <p className="text-2xl font-bold mb-1">{value}</p>
-          <p className={`text-xs ${positive ? 'text-green-600' : 'text-red-600'}`}>
-            {change} from last week
+          <p className={`text-xs ${change === 0 ? 'text-gray-600' : positive ? 'text-green-600' : 'text-red-600'}`}>
+            {formattedChange}
           </p>
         </CardContent>
       </Card>

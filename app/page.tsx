@@ -17,10 +17,10 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-gradient-purple rounded-lg flex items-center justify-center">
+              <div className="w-8 h-8 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg flex items-center justify-center">
                 <Sparkles className="w-5 h-5 text-white" />
               </div>
-              <span className="text-xl font-bold gradient-purple bg-clip-text text-transparent">
+              <span className="text-xl font-bold text-gray-900 dark:text-white">
                 LinkChain
               </span>
             </div>
@@ -54,7 +54,7 @@ export default function LandingPage() {
           <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight">
             Your Link in Bio,
             <br />
-            <span className="gradient-purple bg-clip-text text-transparent">
+            <span className="inline-block bg-gradient-to-r from-purple-600 to-pink-600 text-white px-6 py-2 rounded-2xl">
               Powered by Crypto
             </span>
           </h1>
@@ -103,26 +103,26 @@ export default function LandingPage() {
                     Content Creator & Artist
                   </p>
                   <div className="space-y-2">
-                    <div className="h-12 bg-gradient-purple rounded-lg flex items-center justify-center text-white font-medium">
+                    <div className="h-12 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg flex items-center justify-center text-white font-medium shadow-lg">
                       Support me - $5
                     </div>
-                    <div className="h-12 bg-gray-100 dark:bg-gray-700 rounded-lg flex items-center justify-center">
+                    <div className="h-12 bg-gray-100 dark:bg-gray-700 rounded-lg flex items-center justify-center font-medium">
                       Instagram
                     </div>
-                    <div className="h-12 bg-gray-100 dark:bg-gray-700 rounded-lg flex items-center justify-center">
+                    <div className="h-12 bg-gray-100 dark:bg-gray-700 rounded-lg flex items-center justify-center font-medium">
                       Twitter
                     </div>
                   </div>
                 </div>
                 <div className="flex items-center justify-center">
                   <div className="text-center space-y-4">
-                    <div className="text-4xl font-bold gradient-purple bg-clip-text text-transparent">
+                    <div className="text-4xl font-bold text-purple-600 dark:text-purple-400">
                       $1,234
                     </div>
                     <p className="text-sm text-gray-600 dark:text-gray-400">
                       Total Earnings
                     </p>
-                    <div className="flex items-center justify-center space-x-2 text-green-600">
+                    <div className="flex items-center justify-center space-x-2 text-green-600 dark:text-green-500">
                       <CheckCircle className="w-5 h-5" />
                       <span className="text-sm font-medium">12 Tips Today</span>
                     </div>

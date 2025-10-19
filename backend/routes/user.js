@@ -3,6 +3,25 @@ const router = express.Router();
 const supabase = require('../db');
 const { authenticateToken } = require('../middleware/auth');
 
+// Get current user info (alias for /profile)
+router.get('/me', authenticateToken, async (req, res) => {
+  try {
+    const { data: user, error } = await supabase
+      .from('linkinbio_users')
+      .select('id, username, email, display_name, bio, avatar, cover_image, wallet_address, buttons, style, settings, stats, created_at, updated_at')
+      .eq('id', req.userId)
+      .single();
+
+    if (error || !user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    res.json(user);
+  } catch (error) {
+    console.error('Get user error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 // Get user profile
 router.get('/profile', authenticateToken, async (req, res) => {
   try {

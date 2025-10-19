@@ -26,6 +26,10 @@ app.use('/api/user', require('./routes/user'));
 app.use('/api/profile', require('./routes/profile'));
 app.use('/api/tips', require('./routes/tips'));
 app.use('/api/analytics', require('./routes/analytics'));
+app.use('/api/ai', require('./routes/ai'));
+app.use('/api/ai-agent', require('./routes/ai-agent'));
+app.use('/api/visitor', require('./routes/visitor')); // Nexus: Visitor tracking
+app.use('/api/integrations', require('./routes/integrations')); // Nexus: External integrations
 
 // Health check
 app.get('/health', (req, res) => {

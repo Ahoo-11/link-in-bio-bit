@@ -3,13 +3,24 @@
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import { motion } from "framer-motion";
-import { Heart, Share2, Sparkles } from "lucide-react";
+import { Heart, Share2, Sparkles, Instagram, Facebook, Twitter, Linkedin, Music, Camera } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { sendTip, connectWallet, isWalletConnected } from "@/lib/stacks";
 import { formatCurrency } from "@/lib/utils";
+import { visitorTracker } from "@/lib/visitor-tracking";
+
+// Social media platform configuration
+const SOCIAL_PLATFORMS = [
+  { value: "instagram", label: "Instagram", icon: Instagram, color: "#E4405F" },
+  { value: "facebook", label: "Facebook", icon: Facebook, color: "#1877F2" },
+  { value: "twitter", label: "Twitter/X", icon: Twitter, color: "#1DA1F2" },
+  { value: "tiktok", label: "TikTok", icon: Music, color: "#000000" },
+  { value: "linkedin", label: "LinkedIn", icon: Linkedin, color: "#0A66C2" },
+  { value: "snapchat", label: "Snapchat", icon: Camera, color: "#FFFC00" },
+];
 
 interface ProfileData {
   username: string;
@@ -37,6 +48,11 @@ export default function PublicProfilePage() {
 
   useEffect(() => {
     loadProfile();
+    
+    // Cleanup: End session when leaving page
+    return () => {
+      visitorTracker.endSession().catch(console.error);
+    };
   }, [username]);
 
   const loadProfile = async () => {
@@ -46,11 +62,11 @@ export default function PublicProfilePage() {
         const data = await response.json();
         setProfile(data);
         
-        // Track visit
-        fetch(`/api/analytics/visit`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ username }),
+        // Track visitor session with Nexus
+        visitorTracker.trackVisit(username).then((session) => {
+          console.log('📊 Visitor session started:', session);
+        }).catch((error) => {
+          console.error('Failed to track visit:', error);
         });
       } else {
         toast.error("Profile not found");
@@ -62,7 +78,24 @@ export default function PublicProfilePage() {
     }
   };
 
+  const trackClick = async (buttonId: string) => {
+    try {
+      // Track with Nexus visitor tracking
+      await visitorTracker.trackButtonClick(buttonId);
+      
+      // Also track with old analytics for backward compatibility
+      await fetch(`/api/analytics/click`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, buttonId }),
+      });
+    } catch (error) {
+      console.error("Failed to track click:", error);
+    }
+  };
+
   const handleTipClick = (button: any) => {
+    trackClick(button.id);
     setSelectedTip(button);
     setCustomAmount(button.amount?.toString() || "");
     setShowTipModal(true);
@@ -216,13 +249,42 @@ export default function PublicProfilePage() {
             )}
             
             <h1 className="text-3xl font-bold mb-2">{profile.displayName}</h1>
-            <p className="text-lg opacity-80 mb-1">{profile.bio}</p>
+            <p className="text-lg opacity-80 mb-3">{profile.bio}</p>
+            
+            {/* Social Icons */}
+            {profile.buttons.filter(btn => btn.visible && btn.type === "social" && btn.platform).length > 0 && (
+              <div className="flex justify-center gap-4 mb-3">
+                {profile.buttons.filter(btn => btn.visible && btn.type === "social" && btn.platform).map((button, index) => {
+                  const platform = SOCIAL_PLATFORMS.find(p => p.value === button.platform);
+                  const Icon = platform?.icon;
+                  return Icon ? (
+                    <motion.a
+                      key={button.id}
+                      href={button.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={() => trackClick(button.id)}
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ duration: 0.3, delay: index * 0.1 }}
+                      className="w-12 h-12 rounded-full flex items-center justify-center transition-all hover:scale-110 shadow-lg"
+                      style={{ 
+                        backgroundColor: profile.style?.theme === "dark" ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.05)"
+                      }}
+                    >
+                      <Icon className="w-6 h-6" style={{ color: platform?.color }} />
+                    </motion.a>
+                  ) : null;
+                })}
+              </div>
+            )}
+            
             <p className="text-sm opacity-60">@{profile.username}</p>
           </motion.div>
 
           {/* Buttons */}
           <div className="space-y-3">
-            {profile.buttons.filter(btn => btn.visible).map((button, index) => (
+            {profile.buttons.filter(btn => btn.visible && btn.type !== "social").map((button, index) => (
               <motion.div
                 key={button.id}
                 initial={{ opacity: 0, y: 20 }}
@@ -243,11 +305,28 @@ export default function PublicProfilePage() {
                       <span>{button.title}</span>
                     </div>
                   </button>
+                ) : button.type === "video" || button.type === "youtube_embed" ? (
+                  <div className="w-full">
+                    <div className="relative w-full rounded-xl overflow-hidden shadow-lg" style={{ paddingBottom: "56.25%" }}>
+                      <iframe
+                        src={button.url.replace('watch?v=', 'embed/')}
+                        className="absolute top-0 left-0 w-full h-full"
+                        frameBorder="0"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                        onClick={() => trackClick(button.id)}
+                      />
+                    </div>
+                    {button.title && (
+                      <p className="mt-2 text-sm font-medium text-center">{button.title}</p>
+                    )}
+                  </div>
                 ) : (
                   <a
                     href={button.url}
                     target="_blank"
                     rel="noopener noreferrer"
+                    onClick={() => trackClick(button.id)}
                     className="block w-full rounded-xl px-6 py-4 text-center font-semibold btn-hover shadow-md"
                     style={{
                       backgroundColor: button.style.bgColor,

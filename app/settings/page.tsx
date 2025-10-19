@@ -45,10 +45,10 @@ export default function SettingsPage() {
         const data = await response.json();
         setProfile({
           username: data.username,
-          email: data.email,
-          displayName: data.displayName,
+          email: data.email || "",
+          displayName: data.display_name || "",
           bio: data.bio || "",
-          walletAddress: data.walletAddress || "",
+          walletAddress: data.wallet_address || "",
         });
         setSettings(data.settings || settings);
       }
@@ -110,11 +110,28 @@ export default function SettingsPage() {
   };
 
   const handleConnectWallet = () => {
-    connectWallet((userData) => {
+    connectWallet(async (userData) => {
       const address = getUserAddress();
-      setProfile({ ...profile, walletAddress: address || "" });
-      setWalletConnected(true);
-      toast.success("Wallet connected!");
+      if (address) {
+        setProfile({ ...profile, walletAddress: address });
+        setWalletConnected(true);
+        
+        // Save wallet address to backend
+        try {
+          const token = localStorage.getItem("token");
+          await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/user/profile`, {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ walletAddress: address }),
+          });
+          toast.success("Wallet connected and saved!");
+        } catch (error) {
+          toast.error("Wallet connected but failed to save");
+        }
+      }
     });
   };
 

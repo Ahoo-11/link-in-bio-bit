@@ -6,14 +6,16 @@ import { ArrowLeft, Download, TrendingUp, Users, MousePointer, DollarSign } from
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
-import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
+import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { downloadCSV, formatCurrency } from "@/lib/utils";
 import { toast } from "sonner";
+import VisitorAnalytics from "@/components/visitor-analytics";
 
 export default function AnalyticsPage() {
   const [timeRange, setTimeRange] = useState("7d");
   const [analytics, setAnalytics] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [username, setUsername] = useState<string>("");
 
   useEffect(() => {
     loadAnalytics();
@@ -22,8 +24,43 @@ export default function AnalyticsPage() {
   const loadAnalytics = async () => {
     try {
       const token = localStorage.getItem("token");
+      
+      // Get user info for username
+      if (!username) {
+        const userResponse = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/api/user/me`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+        if (userResponse.ok) {
+          const userData = await userResponse.json();
+          setUsername(userData.username);
+        }
+      }
+      
+      // Calculate date range
+      const now = new Date();
+      let startDate;
+      switch (timeRange) {
+        case "24h":
+          startDate = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+          break;
+        case "7d":
+          startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+          break;
+        case "30d":
+          startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+          break;
+        case "90d":
+          startDate = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+          break;
+        default:
+          startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      }
+
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/analytics/dashboard?range=${timeRange}`,
+        `${process.env.NEXT_PUBLIC_API_URL}/api/analytics/dashboard?startDate=${startDate.toISOString()}&endDate=${now.toISOString()}`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -53,30 +90,46 @@ export default function AnalyticsPage() {
     toast.success("Analytics exported!");
   };
 
-  // Sample data for demonstration
-  const trafficData = [
-    { date: "Mon", visits: 234, clicks: 89 },
-    { date: "Tue", visits: 312, clicks: 121 },
-    { date: "Wed", visits: 289, clicks: 98 },
-    { date: "Thu", visits: 401, clicks: 156 },
-    { date: "Fri", visits: 478, clicks: 189 },
-    { date: "Sat", visits: 523, clicks: 201 },
-    { date: "Sun", visits: 445, clicks: 167 },
-  ];
+  // Process real data for charts
+  const getTrafficData = () => {
+    if (!analytics?.dailyStats) return [];
+    
+    const dataMap: Record<string, { visits: number; clicks: number }> = {};
+    
+    analytics.dailyStats.forEach((stat: any) => {
+      const date = stat._id.date;
+      if (!dataMap[date]) {
+        dataMap[date] = { visits: 0, clicks: 0 };
+      }
+      if (stat._id.eventType === 'visit') {
+        dataMap[date].visits = stat.count;
+      } else if (stat._id.eventType === 'click') {
+        dataMap[date].clicks = stat.count;
+      }
+    });
 
-  const buttonClickData = [
-    { name: "Support me - $5", clicks: 145, fill: "#8b5cf6" },
-    { name: "Instagram", clicks: 234, fill: "#ec4899" },
-    { name: "Twitter", clicks: 189, fill: "#3b82f6" },
-    { name: "Website", clicks: 98, fill: "#10b981" },
-  ];
+    return Object.entries(dataMap)
+      .map(([date, data]) => ({
+        date: new Date(date).toLocaleDateString('en-US', { weekday: 'short' }),
+        ...data,
+      }))
+      .slice(-7); // Last 7 days
+  };
 
-  const sourceData = [
-    { name: "Direct", value: 45, fill: "#8b5cf6" },
-    { name: "Instagram", value: 30, fill: "#ec4899" },
-    { name: "Twitter", value: 15, fill: "#3b82f6" },
-    { name: "Other", value: 10, fill: "#6b7280" },
-  ];
+  const getButtonClickData = () => {
+    if (!analytics?.buttonStats) return [];
+    
+    const colors = ["#8b5cf6", "#ec4899", "#3b82f6", "#10b981", "#f59e0b"];
+    
+    return analytics.buttonStats.slice(0, 5).map((stat: any, index: number) => ({
+      name: stat._id,
+      clicks: stat.clicks,
+      fill: colors[index % colors.length],
+    }));
+  };
+
+  const trafficData = getTrafficData();
+  const buttonClickData = getButtonClickData();
 
   if (loading) {
     return (
@@ -134,29 +187,29 @@ export default function AnalyticsPage() {
         <div className="grid md:grid-cols-4 gap-6 mb-8">
           <MetricCard
             title="Total Visits"
-            value="2,384"
-            change="+12.5%"
+            value={analytics?.visits?.toLocaleString() || "0"}
+            change="N/A"
             icon={<Users className="w-5 h-5" />}
             positive
           />
           <MetricCard
             title="Total Clicks"
-            value="1,021"
-            change="+8.2%"
+            value={analytics?.clicks?.toLocaleString() || "0"}
+            change="N/A"
             icon={<MousePointer className="w-5 h-5" />}
             positive
           />
           <MetricCard
             title="Click Rate"
-            value="42.8%"
-            change="-2.1%"
+            value={`${analytics?.conversionRate || 0}%`}
+            change="N/A"
             icon={<TrendingUp className="w-5 h-5" />}
-            positive={false}
+            positive
           />
           <MetricCard
             title="Total Earnings"
-            value="$1,234"
-            change="+23.4%"
+            value="$0.00"
+            change="N/A"
             icon={<DollarSign className="w-5 h-5" />}
             positive
           />
@@ -205,69 +258,54 @@ export default function AnalyticsPage() {
           </Card>
         </div>
 
-        {/* Traffic Sources */}
-        <div className="grid lg:grid-cols-3 gap-6">
-          <Card className="lg:col-span-2">
-            <CardHeader>
-              <CardTitle>Top Performing Buttons</CardTitle>
-              <CardDescription>Most clicked buttons on your profile</CardDescription>
-            </CardHeader>
-            <CardContent>
+        {/* Top Performing Buttons */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Top Performing Buttons</CardTitle>
+            <CardDescription>Most clicked buttons on your profile</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {buttonClickData.length > 0 ? (
               <div className="space-y-4">
-                {buttonClickData.map((button, index) => (
-                  <div key={index} className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <div
-                        className="w-3 h-3 rounded-full"
-                        style={{ backgroundColor: button.fill }}
-                      />
-                      <span className="font-medium">{button.name}</span>
-                    </div>
-                    <div className="flex items-center space-x-4">
-                      <span className="text-muted-foreground">{button.clicks} clicks</span>
-                      <div className="w-32 bg-gray-200 rounded-full h-2">
+                {buttonClickData.map((button: any, index: number) => {
+                  const maxClicks = Math.max(...buttonClickData.map((b: any) => b.clicks || 0), 1);
+                  return (
+                    <div key={index} className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
                         <div
-                          className="h-2 rounded-full"
-                          style={{
-                            width: `${(button.clicks / Math.max(...buttonClickData.map(b => b.clicks))) * 100}%`,
-                            backgroundColor: button.fill,
-                          }}
+                          className="w-3 h-3 rounded-full"
+                          style={{ backgroundColor: button.fill }}
                         />
+                        <span className="font-medium">{button.name}</span>
+                      </div>
+                      <div className="flex items-center space-x-4">
+                        <span className="text-muted-foreground">{button.clicks} clicks</span>
+                        <div className="w-32 bg-gray-200 rounded-full h-2">
+                          <div
+                            className="h-2 rounded-full"
+                            style={{
+                              width: `${(button.clicks / maxClicks) * 100}%`,
+                              backgroundColor: button.fill,
+                            }}
+                          />
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
-            </CardContent>
-          </Card>
+            ) : (
+              <p className="text-center text-muted-foreground py-8">No button clicks yet</p>
+            )}
+          </CardContent>
+        </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Traffic Sources</CardTitle>
-              <CardDescription>Where visitors come from</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={200}>
-                <PieChart>
-                  <Pie
-                    data={sourceData}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                    outerRadius={80}
-                    dataKey="value"
-                  >
-                    {sourceData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.fill} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-        </div>
+        {/* Nexus Visitor Analytics */}
+        {username && (
+          <div className="mt-8">
+            <VisitorAnalytics username={username} timeframe={timeRange} />
+          </div>
+        )}
       </div>
     </div>
   );

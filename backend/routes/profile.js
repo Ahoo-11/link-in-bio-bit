@@ -48,6 +48,7 @@ router.post('/update', authenticateToken, async (req, res) => {
       if (profile.bio !== undefined) updates.bio = profile.bio;
       if (profile.avatar !== undefined) updates.avatar = profile.avatar;
       if (profile.coverImage !== undefined) updates.cover_image = profile.coverImage;
+      if (profile.walletAddress !== undefined) updates.wallet_address = profile.walletAddress;
     }
 
     // Update buttons
